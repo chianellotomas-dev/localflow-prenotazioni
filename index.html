@@ -267,7 +267,7 @@
     const rawInitialView = document.body.dataset.initialView;
     const queryView = new URLSearchParams(location.search).get('view');
     const initialView = queryView || (/^(admin|book|catalog)$/.test(rawInitialView) ? rawInitialView : 'book');
-    const LOCALFLOW_API_URL = 'https://script.google.com/macros/s/AKfycbz29kXZIaCplzE5Iu-XlBIihMtQ5T6neHZjy6xRb15M0u5Ze7qycqKE-jMcpHgWzYoXbA/exec';
+    const LOCALFLOW_API_URL = 'https://localflow-api.chianello-tomas.workers.dev/';
     const isAppsScript = true;
     const state = {
       view: initialView,
