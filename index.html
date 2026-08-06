@@ -993,6 +993,14 @@
       return metaSdkPromise;
     }
 
+    // Precarica il Meta SDK in anticipo: evita che Safari blocchi il popup
+    // quando l'utente preme il pulsante WhatsApp nell'area Gestione.
+    window.addEventListener('DOMContentLoaded', () => {
+      loadMetaSdk().catch(() => {
+        // L'errore viene mostrato all'utente solo quando prova a collegare WhatsApp.
+      });
+    });
+
     function parseEmbeddedSignupMessage(value) {
       if (typeof value === 'string') {
         try { return JSON.parse(value); } catch (error) { return null; }
@@ -1056,18 +1064,29 @@
       }
     });
 
-    async function launchWhatsAppEmbeddedSignup() {
+    function launchWhatsAppEmbeddedSignup() {
       if (!state.pin) return showToast('Accedi nuovamente all’area gestione.', 'error');
 
       whatsappSignupCode = '';
       whatsappSignupSession = null;
       whatsappSignupExchangeStarted = false;
+
+      // Il popup Meta deve essere aperto direttamente dal click dell'utente.
+      // Su Safari una chiamata FB.login eseguita dopo un "await" può essere bloccata
+      // perché il browser non la considera più collegata al gesto dell'utente.
+      if (!window.FB) {
+        setWhatsAppConnectStatus('Meta si sta ancora caricando. Attendi 2 secondi e premi di nuovo il pulsante.', 'info');
+        loadMetaSdk().catch(error => {
+          metaSdkPromise = null;
+          setWhatsAppConnectStatus(error.message || 'Impossibile caricare la procedura Meta.', 'error');
+        });
+        return;
+      }
+
       setWhatsAppConnectBusy(true, 'Apertura di Meta…');
-      setWhatsAppConnectStatus('Caricamento della procedura protetta Meta…', 'info');
+      setWhatsAppConnectStatus('Apertura della procedura protetta Meta…', 'info');
 
       try {
-        await loadMetaSdk();
-
         FB.login(response => {
           const code = response && response.authResponse && response.authResponse.code;
           if (!code) {
@@ -1090,7 +1109,6 @@
           }
         });
       } catch (error) {
-        metaSdkPromise = null;
         setWhatsAppConnectStatus(error.message || 'Impossibile aprire la procedura Meta.', 'error');
         setWhatsAppConnectBusy(false);
       }
@@ -1127,7 +1145,7 @@
           <details><summary>Modelli per la produzione</summary><div class="stack" style="margin-top:12px"><div class="field"><label>Conferma</label><input id="confirmationTemplate" value="${escapeHtml(s.confirmationTemplate)}"></div><div class="field"><label>Promemoria</label><input id="reminderTemplate" value="${escapeHtml(s.reminderTemplate)}"></div><div class="field"><label>Recensione</label><input id="reviewTemplate" value="${escapeHtml(s.reviewTemplate)}"></div></div></details>
           <button class="btn primary" type="submit">Salva impostazioni</button>
         </form></section>
-        <section class="stack"><div class="panel"><div class="eyebrow">Configurazione privata</div><h2>Collega WhatsApp Business</h2><p class="muted">Questa funzione compare soltanto nell'area Gestione. Avvia la procedura Meta per mantenere lo stesso numero nell'app WhatsApp Business e nelle automazioni LocalFlow.</p><div id="whatsappConnectStatus" class="notice info">Questa procedura va eseguita una sola volta per collegare il numero WhatsApp Business dell'attività. Dopo il collegamento, tutte le automazioni di LocalFlow utilizzeranno automaticamente quel numero per inviare conferme, promemoria e richieste di recensione ai clienti.</div><button id="whatsappConnectBtn" type="button" class="btn whatsapp">${whatsappIcon()}Collega il mio numero WhatsApp Business</button><p class="hint" style="margin-top:10px">App ID e Configuration ID non sono password. Token e chiave segreta non vengono inseriti nel browser.</p></div>
+        <section class="stack"><div class="panel"><div class="eyebrow">Configurazione privata</div><h2>Collega WhatsApp Business</h2><p class="muted">Questa funzione compare soltanto nell'area Gestione. Avvia la procedura Meta per mantenere lo stesso numero nell'app WhatsApp Business e nelle automazioni LocalFlow.</p><div id="whatsappConnectStatus" class="notice info">Pronto per collegare il numero reale. Accedi con il profilo Meta che amministra il Business Portfolio.</div><button id="whatsappConnectBtn" type="button" class="btn whatsapp">${whatsappIcon()}Collega il mio numero WhatsApp Business</button><p class="hint" style="margin-top:10px">App ID e Configuration ID non sono password. Token e chiave segreta non vengono inseriti nel browser.</p></div>
           <div class="panel"><h2>Test invio</h2><p class="muted">Usa uno dei destinatari verificati nella schermata Meta.</p><form id="testForm" class="stack"><div class="field"><label>Numero destinatario</label><input id="testPhone" type="tel" placeholder="+39\u2026" required></div><button class="btn" type="submit">Invia hello_world</button></form></div>
           <div class="panel"><h2>Controllo automatico</h2><p class="muted">Ogni 5 minuti LocalFlow controller\u00e0 conferme, promemoria e richieste di recensione da inviare.</p><div class="notice ${state.adminData.automationInstalled ? 'success' : ''}">${state.adminData.automationInstalled ? 'Automazione attiva.' : 'Automazione non ancora attiva.'}</div><button id="automationBtn" class="btn ${state.adminData.automationInstalled ? '' : 'primary'}">${state.adminData.automationInstalled ? 'Reinstalla controllo' : 'Attiva controllo automatico'}</button></div>
           <div class="panel"><h2>Link pubblici</h2><p class="muted">Link da condividere con i clienti.</p><div class="field"><label>Prenotazioni</label><input id="bookingUrl" readonly value="${escapeHtml(baseUrl + '?view=book')}"></div><div class="actions"><button id="copyLinkBtn" class="btn small">Copia prenotazioni</button></div><div class="divider"></div><div class="field"><label>Pagina catalogo per Meta</label><input id="catalogPageUrl" readonly value="${escapeHtml(baseUrl + '?view=catalog')}"></div><div class="actions"><button id="copyCatalogLinkBtn" class="btn small">Copia pagina catalogo</button></div></div>
