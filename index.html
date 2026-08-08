@@ -233,14 +233,27 @@
          compare solo all'inizio della pagina e scorre via. */
       body::before { position: absolute; }
 
-      /* Sfondo marmo dedicato al mobile, caricato come file separato.
-         Così l'index resta leggero e GitHub riesce a mostrarlo/modificarlo. */
+      /* Su iPhone/Safari lo sfondo non viene applicato direttamente al body:
+         viene disegnato su un livello fisso separato, così resta fermo mentre
+         scorrono card, icone e contenuti. */
       body {
+        background-image: none;
+        background-color: transparent;
+        isolation: isolate;
+      }
+
+      body::after {
+        content: "";
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
         background-image: url("marmo-mobile.webp");
         background-size: cover;
         background-position: center center;
         background-repeat: no-repeat;
-        background-attachment: fixed;
+        transform: translateZ(0);
       }
 
       .shell { width: min(100% - 20px, 1180px); padding-top: 14px; }
