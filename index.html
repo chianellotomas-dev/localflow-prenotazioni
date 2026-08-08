@@ -229,6 +229,10 @@
       .booking-grid .panel:first-child { order: 0; }
     }
     @media (max-width: 560px) {
+      /* Su smartphone la riga decorativa superiore non resta fissa:
+         compare solo all'inizio della pagina e scorre via. */
+      body::before { position: absolute; }
+
       .shell { width: min(100% - 20px, 1180px); padding-top: 14px; }
       .topbar { align-items: center; }
       .brand-mark { width: 52px; height: 52px; border-radius: 14px; }
